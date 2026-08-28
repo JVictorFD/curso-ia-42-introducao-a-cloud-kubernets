@@ -2,8 +2,8 @@
 
 Gerenciador de Tarefas (Task Manager) com Next.js 14 e PostgreSQL.
 
-> Esta branch (`main`) contém só a aplicação. Kubernetes, Terraform, CI/CD e
-> observabilidade ficam na branch `dev_aula`, usada na aula.
+Esta branch contém a aplicação, o Dockerfile e os manifests Kubernetes usados
+para executá-la localmente.
 
 ## Demonstração
 
@@ -46,7 +46,10 @@ task-manager/
 └── package.json      # Dependências
 ```
 
-## Instalação e Execução Local
+## Execução da Aplicação
+
+Execute os comandos a seguir a partir da pasta `task-manager/`. A aplicação
+usa PostgreSQL para armazenar as tarefas e fica disponível na porta `3000`.
 
 ### Pré-requisitos
 
@@ -72,16 +75,28 @@ docker compose up -d
 
 ### Desenvolvimento Local
 
+Instale as dependências e defina as variáveis de conexão com o PostgreSQL. O
+banco precisa estar acessível em `localhost:5432`.
+
 ```bash
 # Instalar dependências
 npm install
 
-# Criar arquivo .env (baseado em .env.example)
-cp .env.example .env
+# Configurar a conexão com o PostgreSQL
+cat > .env.local <<'EOF'
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+DATABASE_NAME=task_manager
+DATABASE_USER=admin
+DATABASE_PASSWORD=admin
+EOF
 
-# Executar migrations e iniciar servidor
+# Iniciar o servidor de desenvolvimento
 npm run dev
 ```
+
+Acesse `http://localhost:3000`. Para interromper o servidor, pressione
+`Ctrl+C`.
 
 ## API REST
 
@@ -134,6 +149,9 @@ docker build -t task-manager .
 docker run -p 3000:3000 task-manager
 ```
 
+Esse comando executa apenas a aplicação. Para iniciar a aplicação e o
+PostgreSQL juntos, use a opção Docker Compose acima.
+
 ## Deploy em Kubernetes (k3d)
 
 Os manifests em `k8s/` executam a aplicação com três réplicas, um PostgreSQL
@@ -166,12 +184,6 @@ POD=$(kubectl get pods -l app=task-manager -o jsonpath='{.items[0].metadata.name
 kubectl logs "$POD"
 kubectl describe deployment task-manager
 ```
-
-## Branches
-
-- **main**: só a aplicação (Next.js + API + Docker).
-- **dev_aula**: aplicação + Kubernetes + Terraform + CI/CD + observabilidade
-  (usada na aula).
 
 ## Licença
 
