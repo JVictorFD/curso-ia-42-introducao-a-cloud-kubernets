@@ -134,10 +134,38 @@ docker build -t task-manager .
 docker run -p 3000:3000 task-manager
 ```
 
-## Kubernetes, Terraform, CI/CD e Observabilidade
+## Deploy em Kubernetes (k3d)
 
-Não fazem parte desta branch. Veja a branch `dev_aula` deste repositório para
-os manifests Kubernetes, o Terraform (k3d + Helm) e o workflow de CI/CD.
+Os manifests em `k8s/` executam a aplicação com três réplicas, um PostgreSQL
+interno, ConfigMap, Secret e Service NodePort.
+
+```bash
+# Criar o cluster, se necessário
+k3d cluster create task-manager --servers 1 --agents 1 -p "8080:30080@loadbalancer"
+
+# Construir e importar a imagem local
+docker build -t task-manager:local .
+k3d image import task-manager:local -c task-manager
+
+# Aplicar os recursos e aguardar os Deployments
+kubectl apply -f k8s/configmap.yaml -f k8s/secret.yaml -f k8s/postgres.yaml -f k8s/task-manager.yaml
+kubectl rollout status deployment/postgres
+kubectl rollout status deployment/task-manager
+kubectl get pods,svc,deployments
+
+# Verificar a aplicação
+curl http://localhost:8080/api/health
+
+# Escalar para quatro réplicas e verificar o resultado
+kubectl scale deployment/task-manager --replicas=4
+kubectl get deployment task-manager
+kubectl get pods -l app=task-manager
+
+# Coletar logs de um Pod e o describe do Deployment
+POD=$(kubectl get pods -l app=task-manager -o jsonpath='{.items[0].metadata.name}')
+kubectl logs "$POD"
+kubectl describe deployment task-manager
+```
 
 ## Branches
 
